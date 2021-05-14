@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -16,6 +17,7 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 
+
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private var map: GoogleMap? = null
@@ -23,6 +25,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private var locationClient: FusedLocationProviderClient? = null
     private var request: LocationRequest? = null
     private var callback: LocationCallback? = null
+    private var currentLocButton: Button? = null
+    private var lastLocation: LatLng? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,18 +48,34 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             it.priority = LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY
         }
 
+        currentLocButton = findViewById(R.id.button)
+        currentLocButton!!.setOnClickListener {
+            lastLocation?.let { ll ->
+                infoView!!.text = getString(R.string.latlng_format, ll.latitude, ll.longitude)
+                if (map == null) {
+                    Log.d(TAG, "onLocationResult: map == null")
+                } else {
+                    map!!.animateCamera(CameraUpdateFactory.newLatLng(ll))
+                }
+            }
+        }
+
         callback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 Log.d(TAG, "onLocationResult")
                 val location = locationResult.lastLocation
                 val ll = LatLng(location.latitude, location.longitude)
-                infoView!!.text = getString(R.string.latlng_format, ll.latitude, ll.longitude)
 
-                if (map == null) {
-                    Log.d(TAG, "onLocationResult: map == null")
-                    return
+                if (lastLocation == null) {
+                    infoView!!.text = getString(R.string.latlng_format, ll.latitude, ll.longitude)
+
+                    if (map == null) {
+                        Log.d(TAG, "onLocationResult: map == null")
+                        return
+                    }
+                    map!!.animateCamera(CameraUpdateFactory.newLatLng(ll))
                 }
-                map!!.animateCamera(CameraUpdateFactory.newLatLng(ll))
+                lastLocation = ll
             }
         }
     }
